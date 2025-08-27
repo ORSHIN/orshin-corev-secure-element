@@ -106,48 +106,48 @@ void secpat_i2c_receive(void *pvParameters) {
 			case 0:
 				rx_packet.NAD = data;
 				++bytes_read;
-				//CLI_printf("NAD: 0x%x\n", data);
+				CLI_printf("NAD: 0x%x\n", data);
 				break;
 			case 1:
 				rx_packet.PCB = data;
-				//CLI_printf("PCB: 0x%x\n", data);
+				CLI_printf("PCB: 0x%x\n", data);
 				++bytes_read;
 				break;
 			case 2:
 				rx_packet.LEN = data;
-				//CLI_printf("LEN: 0x%x\n", data);
+				CLI_printf("LEN: 0x%x\n", data);
 				++bytes_read;
 				break;
 			default:
 				if (bytes_read == rx_packet.LEN + T1_HEADER_LEN) {
 					rx_packet.CRC_B1 = data;
-					//CLI_printf("CRC_B1: 0x%x\n", data);
+					CLI_printf("CRC_B1: 0x%x\n", data);
 					++bytes_read;
 				} else if (bytes_read == rx_packet.LEN + T1_HEADER_LEN + 1) {
 					rx_packet.CRC_B2 = data;
-					//CLI_printf("CRC_B2: 0x%x\n", data);
+					CLI_printf("CRC_B2: 0x%x\n", data);
 					//We're done!
-					//CLI_printf("Parsing packet!\n");
+					CLI_printf("Parsing packet!\n");
 
 					T1_construct_resp_packet_data();
-					//CLI_printf("Constructed response packet data\n");
+					CLI_printf("Constructed response packet data\n");
 
 					T1_generate_response(out_buffer);
-					//CLI_printf("Generated response\n");
+					CLI_printf("Generated response\n");
 
 					send_to_outbound_queue(out_buffer, tx_packet.LEN + 5);
-//					CLI_printf(
-//							"RESP Data:\nNAD: 0x%x, PCB: 0x%x LEN: %d CRC_B1: 0x%x, CRC_B2: 0x%x\n\n",
-//							tx_packet.NAD, tx_packet.PCB, tx_packet.LEN,
-//							tx_packet.CRC_B1, tx_packet.CRC_B2);
+					CLI_printf(
+							"RESP Data:\nNAD: 0x%x, PCB: 0x%x LEN: %d CRC_B1: 0x%x, CRC_B2: 0x%x\n\n",
+							tx_packet.NAD, tx_packet.PCB, tx_packet.LEN,
+							tx_packet.CRC_B1, tx_packet.CRC_B2);
 					bytes_read = 0;
 					memset(&tx_packet, 0, sizeof(tx_packet));
 					memset(&rx_packet, 0, sizeof(rx_packet));
 
 				} else {
 					rx_packet.APDU_message[bytes_read - T1_HEADER_LEN] = data;
-//					CLI_printf("Data %d: 0x%x\n", bytes_read - T1_HEADER_LEN,
-//							data);
+					CLI_printf("Data %d: 0x%x\n", bytes_read - T1_HEADER_LEN,
+							data);
 					++bytes_read;
 				}
 				break;

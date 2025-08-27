@@ -9,14 +9,20 @@ SPDX-License-Identifier: MIT
 #include "../include/slave_T1_def.h"
 #include "../include/secpat_i2c.h"
 #include <string.h>
-
+#include "FreeRTOS.h"
+#include "task.h"
 session_context_t scp03_sess_ctxt; /* Session context data. */
 
 void set_rec_APDU_message(uint8_t *ptrRecAPDU) {
 	scp03_sess_ctxt.rx_APDU_data_len = ptrRecAPDU[iLC1CAPDU];
 	scp03_sess_ctxt.rx_APDU_data_len <<= 8;
 	scp03_sess_ctxt.rx_APDU_data_len |= ptrRecAPDU[iLC2CAPDU];
-	memcpy(scp03_sess_ctxt.rx_APDU_message, ptrRecAPDU, CAPDU_HEADER_LEN + scp03_sess_ctxt.rx_APDU_data_len);
+	//memcpy(scp03_sess_ctxt.rx_APDU_message, ptrRecAPDU, (size_t)(CAPDU_HEADER_LEN + scp03_sess_ctxt.rx_APDU_data_len));
+
+	CLI_printf("csp03_sess_ctxt.rx_APDU_data_len: 0x%x\n", scp03_sess_ctxt.rx_APDU_data_len);
+	for (size_t i = 0; i < (size_t)(CAPDU_HEADER_LEN + scp03_sess_ctxt.rx_APDU_data_len); ++i){
+	    scp03_sess_ctxt.rx_APDU_message[i] = ptrRecAPDU[i];
+	}
 }
 
 void scp03APDU_construct_resp_APDU_message(uint8_t *ptrAPDUCommand,
@@ -90,15 +96,43 @@ void prepare_response_APDU(uint8_t *ptrAPDUCommand, uint8_t *ptrAPDUResponse,
 	}
 }
 
+/*
 void echo_response(uint8_t *ptrResponseData, uint8_t *ptrResponseDataLen,
 		uint8_t *ptrCommandDataDec) {
 	uint16_t response_payload_len;
 	response_payload_len = (((uint16_t) ptrCommandDataDec[iLC1CAPDU]) << 8)
 			+ (((uint16_t) ptrCommandDataDec[iLC2CAPDU]));
 	memcpy(ptrResponseData, ptrCommandDataDec, RAPDU_HEADER_LEN - 2); /* Copy the CLA and INS of the CAPDU. */
+//	memcpy(ptrResponseData + 2, ptrCommandDataDec + RAPDU_HEADER_LEN, 2); /* Copy the Lc field of the CAPDU. */
+//	memcpy(ptrResponseData + RAPDU_HEADER_LEN,
+//			ptrCommandDataDec + CAPDU_HEADER_LEN, response_payload_len);
+//	*ptrResponseDataLen = RAPDU_HEADER_LEN + response_payload_len;
+//}
+
+
+void echo_response(uint8_t *ptrResponseData, uint8_t *ptrResponseDataLen,
+		uint8_t *ptrCommandDataDec) {
+	uint16_t response_payload_len;
+	uint16_t i;
+	uint8_t RANDOM_BYTES_NUM = 16;
+	//const uint8_t custom_message[] = {0x44, 0x45, 0x41, 0x44, 0x42, 0x45, 0x45, 0x46}; /* ASCII bytes for "DEADBEEF" */
+	uint8_t custom_message[RANDOM_BYTES_NUM];
+	for(int j=0; j<RANDOM_BYTES_NUM;j++){
+		custom_message[j] = rand() % (255 + 1 - 0) + 0;
+		CLI_printf("Random number %d is 0x%02x \r\n", j, custom_message[j]);
+	}
+	uint16_t custom_message_len = sizeof(custom_message);
+
+	response_payload_len = (((uint16_t) ptrCommandDataDec[iLC1CAPDU]) << 8)
+			+ (((uint16_t) ptrCommandDataDec[iLC2CAPDU]));
+	memcpy(ptrResponseData, ptrCommandDataDec, RAPDU_HEADER_LEN - 2); /* Copy the CLA and INS of the CAPDU. */
 	memcpy(ptrResponseData + 2, ptrCommandDataDec + RAPDU_HEADER_LEN, 2); /* Copy the Lc field of the CAPDU. */
-	memcpy(ptrResponseData + RAPDU_HEADER_LEN,
-			ptrCommandDataDec + CAPDU_HEADER_LEN, response_payload_len);
+
+	/* Fill payload with custom ASCII message, repeating if necessary to fill the expected length */
+	for (i = 0; i < response_payload_len; i++) {
+		ptrResponseData[RAPDU_HEADER_LEN + i] = custom_message[i % custom_message_len];
+	}
+
 	*ptrResponseDataLen = RAPDU_HEADER_LEN + response_payload_len;
 }
 
